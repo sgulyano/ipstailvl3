@@ -1,1 +1,1 @@
-web: bokeh serve --port=$PORT --allow-websocket-origin=ipst-ai-lvl3.herokuapp.com --address=0.0.0.0 --use-xheaders main.py
+web: gunicorn flask_app:app
