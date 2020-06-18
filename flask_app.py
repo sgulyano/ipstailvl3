@@ -6,6 +6,7 @@ import imbalanceddata
 import samplingbias
 import overfitting_class
 import overfitting_regress
+import hyperparameter_decisiontree
 app = flask.Flask(__name__)
 
 @app.route('/')
@@ -15,6 +16,7 @@ def index():
 app_0 = dash.Dash(__name__, server=app, url_base_pathname='/app1/')
 app_0.layout = html.H1('Under Construction')
 
+app_1 = hyperparameter_decisiontree.get_app(app)
 app_2 = imbalanceddata.get_app(app)
 app_3 = samplingbias.get_app(app)
 app_4 = overfitting_class.get_app(app)

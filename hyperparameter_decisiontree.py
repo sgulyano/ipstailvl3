@@ -6,9 +6,11 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 from sklearn import tree
-from sklearn.datasets import load_breast_cancer
+from sklearn.datasets import load_iris
+from sklearn import tree
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
+import matplotlib.pyplot as plt
 
 np.random.seed(42)
 
@@ -17,7 +19,7 @@ def get_app(server=None):
         app = dash.Dash(
             __name__,
             server=server,
-            url_base_pathname='/overfitting_class/'
+            url_base_pathname='/hyperparameters/'
         )
     else:
         external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
@@ -25,7 +27,7 @@ def get_app(server=None):
 
 
     ##
-    data = load_breast_cancer()
+    data = load_iris()
 
     X = data['data'][:, :2]
     y = data['target']
@@ -33,27 +35,26 @@ def get_app(server=None):
     x_train, x_test, y_train, y_test = train_test_split(
         X, y, test_size=0.4, random_state=42)
 
-    train_acc = []
-    test_acc = []
-    for i in range(1,16):
-        clf = tree.DecisionTreeClassifier(max_depth=i)
+
+    def get_fig(depth=4, max_leaf_nodes=10, min_impur_dec=0, show_dec_bound=True):
+        clf = tree.DecisionTreeClassifier(max_depth=depth, max_leaf_nodes=max_leaf_nodes, min_impurity_decrease=min_impur_dec)
         clf = clf.fit(x_train, y_train)
 
         acc_tr = accuracy_score(y_train, clf.predict(x_train))
         acc_te = accuracy_score(y_test, clf.predict(x_test))
 
-        train_acc.append(acc_tr)
-        test_acc.append(acc_te)
-
-
-    def get_fig(depth=4, show_dec_bound=True):
-        clf = tree.DecisionTreeClassifier(max_depth=depth)
-        clf = clf.fit(x_train, y_train)
-
-        acc_tr = accuracy_score(y_train, clf.predict(x_train))
-        acc_te = accuracy_score(y_test, clf.predict(x_test))
-
+        fig = plt.figure(figsize=(9.6, 7.2))
         tree.plot_tree(clf)
+
+        # If we haven't already shown or saved the plot, then we need to
+        # draw the figure first...
+        fig.canvas.draw()
+
+        # Now we can save it to a numpy array.
+        tree_img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+        tree_img = tree_img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        # print(tree_img.shape)
+        
 
         plot_step = 0.1
         x_min, x_max = x_train[:, 0].min() - 1, x_train[:, 0].max() + 1
@@ -64,7 +65,7 @@ def get_app(server=None):
         Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
         Z = Z.reshape(xx.shape)
 
-        colorscale = [[0, 'peachpuff'], [1, 'lightcyan']]
+        colorscale = [[0, 'peachpuff'], [0.5, 'lightcyan'], [1, 'lightgreen']]
         if show_dec_bound:
             fig = go.Figure(data=go.Heatmap(
                 z=Z,
@@ -93,7 +94,7 @@ def get_app(server=None):
                 yaxis_title=data.feature_names[1],
             ))
 
-        colors = ['red', 'blue']
+        colors = ['red', 'blue', 'green']
         for i, color in enumerate(colors):
             idx = np.where(y_train == i)
             fig.add_trace(go.Scatter(x=x_train[idx, 0].squeeze(), y=x_train[idx, 1].squeeze(),
@@ -108,27 +109,19 @@ def get_app(server=None):
                                     name=data.target_names[i] + ' test',
                                     marker_color=color,
                                     opacity=0.3))
-        return fig, acc_tr, acc_te
+        return fig, tree_img, acc_tr, acc_te
 
 
-    fig, acc_tr, acc_te = get_fig()
+    fig, tree_img, acc_tr, acc_te = get_fig()
 
 
     app.layout = html.Div([
-        html.H1(children='Overfitting/Underfitting in Classification'),
+        html.H1(children='ไฮเปอร์พารามิเตอร์ของต้นไม้ตัดสินใจ'),
 
         html.Div(children='''
-            ในแบบฝึกหัดนี้ ให้นักเรียนลองเปลี่ยนค่า hyperparamter depth ของ Decision Tree แล้วดูว่าเมื่อใดเกิด overfitting/underfitting
+            ในแบบฝึกหัดนี้ ให้นักเรียนลองเปลี่ยนค่าไฮเปอร์พารามิเตอร์ (hyperparamter) ของต้นไม้ตัดสินใจ (Decision Tree) เช่น ความลึก ฯลฯ แล้วดูว่าเกิดอะไรขึ้นกับโมเดลที่ได้
         '''),
         html.Div(children=[
-            # dcc.Markdown('### ชุดข้อมูล'),
-            # dcc.Dropdown(
-            #     options=[
-            #         {'label': 'มะเร็งเต้านม', 'value': 'breast_cancer'},
-            #     ],
-            #     value='breast_cancer'
-            # ),
-
             dcc.Markdown('### Max Depth'),
             dcc.Slider(
                 id='depth-slider-id',
@@ -137,21 +130,39 @@ def get_app(server=None):
                 marks={i: '{}'.format(i) for i in [1, 4, 7, 10, 13, 16]},
                 value=4,
             ),
-
-            dcc.Graph(figure=go.Figure([go.Scatter(x=list(range(1,16)), y=train_acc, mode='markers', name="Train"), 
-                                go.Scatter(x=list(range(1,16)), y=test_acc, mode='lines+markers', name="Test")],
-                                layout=go.Layout(
-                title='ข้อมูลที่ใช้ Train โมเดล',
-                xaxis=dict(range=[0, 17]),
-                xaxis_title='Depth',
-                yaxis=dict(range=[0, 1.1]),
-                yaxis_title='Accuracy',
-            )))
+            dcc.Markdown('### Max Leaf Nodes'),
+            dcc.Slider(
+                id='leaf-slider-id',
+                min=1,
+                max=100,
+                marks={i: '{}'.format(i) for i in range(1,10,100)},
+                value=10,
+            ),
+            dcc.Markdown('### Min Impurity'),
+            dcc.Slider(
+                id='impur-slider-id',
+                min=0,
+                max=1,
+                marks={i: '{}'.format(i) for i in np.arange(0,1,0.1)},
+                value=0,
+            ),
         ],
             style={'width': '40%', 'display': 'inline-block', 'vertical-align': 'top'}
         ),
 
         html.Div(children=[
+            dcc.Graph(id='tree-id', 
+                figure=go.Figure(go.Image(z=tree_img),
+                    layout = go.Layout(
+                        margin=go.layout.Margin(
+                                l=0, #left margin
+                                r=0, #right margin
+                                b=0, #bottom margin
+                                t=0, #top margin
+                            ),
+                        title = 'Overview',
+                        xaxis = dict(showticklabels=False),
+                        yaxis = dict(showticklabels=False)))),
             dcc.Graph(id='graph-id', figure=fig),
             html.Div([
                 html.Div(id='accuracy-train-id', children=f'Train Accuracy = {acc_tr:.3f}'),
@@ -169,10 +180,13 @@ def get_app(server=None):
         [Output(component_id='graph-id', component_property='figure'),
         Output(component_id='accuracy-train-id', component_property='children'),
         Output(component_id='accuracy-test-id', component_property='children')],
-        [Input(component_id='depth-slider-id', component_property='value')]
+        [Input(component_id='depth-slider-id', component_property='value'),
+        Input(component_id='leaf-slider-id', component_property='value'),
+        Input(component_id='impur-slider-id', component_property='value')]
     )
-    def update_under_div(depth):
-        fig, acc_tr, acc_te = get_fig(depth)
+    def update_under_div(depth, max_leaf, min_impur):
+        # print(depth, max_leaf, min_impur)
+        fig, tree_img, acc_tr, acc_te = get_fig(depth, max_leaf, min_impur)
         return [fig, f'Train Accuracy = {acc_tr:.3f}', f'Test Accuracy = {acc_te:.3f}']
 
     return app
@@ -180,3 +194,38 @@ def get_app(server=None):
 if __name__ == '__main__':
     app = get_app()
     app.run_server(debug=True)
+
+
+
+# import plotly.graph_objects as go
+# # import plotly.tools as tls
+# from skimage import data as data2
+
+# from sklearn.datasets import load_iris
+# from sklearn import tree
+# import matplotlib.pyplot as plt
+# import numpy as np
+
+# clf = tree.DecisionTreeClassifier(random_state=0)
+# iris = load_iris()
+
+# clf = clf.fit(iris.data, iris.target)
+
+# fig = plt.figure(figsize=(14.4, 10.8))
+# tree.plot_tree(clf)  # doctest: +SKIP
+
+# # If we haven't already shown or saved the plot, then we need to
+# # draw the figure first...
+# fig.canvas.draw()
+
+# # Now we can save it to a numpy array.
+# data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+# data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+# print(data.shape)
+
+# # img = data2.astronaut()s
+# # img_rgb = [[[255, 0, 0], [0, 255, 0], [0, 0, 255]],
+# #            [[0, 255, 0], [0, 0, 255], [255, 0, 0]]]
+# fig = go.Figure(go.Image(z=data))
+# fig.show()
+

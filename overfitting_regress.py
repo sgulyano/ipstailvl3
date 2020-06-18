@@ -193,6 +193,7 @@ def get_app(server=None):
         fig, mse_tr, mse_te = get_fig(degree)
         return [fig, f'Train MSE = {mse_tr:.3f}', f'Test MSE = {mse_te:.3f}']
 
+    return app
 
 if __name__ == '__main__':
     app = get_app()
