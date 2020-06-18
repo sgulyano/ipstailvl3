@@ -1,7 +1,7 @@
 import flask
 from flask import render_template
-# import dash
-# import dash_html_components as html
+import dash
+import dash_html_components as html
 # import imbalanceddata
 # import samplingbias
 app = flask.Flask(__name__)
@@ -18,12 +18,12 @@ def index():
 
 # app.layout = html.Div("My Dash app")
 
-# app_1 = dash.Dash(__name__, server=app, url_base_pathname='/app1/')
-# app_1.layout = html.H1('App 1')
+app_1 = dash.Dash(__name__, server=app, url_base_pathname='/app1/')
+app_1.layout = html.H1('App 1')
 
 
-# app_2 = dash.Dash(__name__, server=app, url_base_pathname='/app2/')
-# app_2.layout = html.H1('App 2')
+app_2 = dash.Dash(__name__, server=app, url_base_pathname='/app2/')
+app_2.layout = html.H1('App 2')
 
 # app3 = imbalanceddata.get_app(server)
 # app4 = samplingbias.get_app(server)
