@@ -7,10 +7,12 @@ import pandas as pd
 import numpy as np
 from sklearn import tree
 from sklearn.datasets import load_iris
-from sklearn import tree
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
-import matplotlib.pyplot as plt
+import io
+
+import myplotly_tree
+
 
 np.random.seed(42)
 
@@ -35,27 +37,55 @@ def get_app(server=None):
     x_train, x_test, y_train, y_test = train_test_split(
         X, y, test_size=0.4, random_state=42)
 
+    fn = data.feature_names[:2]
+    cn = data.target_names
 
-    def get_fig(depth=4, max_leaf_nodes=10, min_impur_dec=0, show_dec_bound=True):
-        clf = tree.DecisionTreeClassifier(max_depth=depth, max_leaf_nodes=max_leaf_nodes, min_impurity_decrease=min_impur_dec)
+
+    def get_fig(depth=4, max_leaf_nodes=10, min_impur_dec=2, show_dec_bound=True):
+        clf = tree.DecisionTreeClassifier(max_depth=depth, max_leaf_nodes=max_leaf_nodes, min_samples_split=min_impur_dec)
         clf = clf.fit(x_train, y_train)
+
+        node, edge, anno = myplotly_tree.get_node_edge(clf, fn, cn, px_init = 10, py_init = 10)
+
+        node_trace = go.Scatter(
+            x=node['x'], y=node['y'],
+            mode='markers+text',
+            hoverinfo='text',
+            text=node['text'],
+            textposition="bottom center",
+            marker=dict(
+                showscale=False,
+                color=node['color'],
+                size=30,
+                line_width=2))
+
+        edge_trace = go.Scatter(
+            x=edge['x'], y=edge['y'],
+            line=dict(width=0.5, color='#888'),
+            hoverinfo='none',
+            mode='lines')
+        
+        fig_tree = go.Figure(data=[edge_trace, node_trace],
+            layout=go.Layout(
+                uniformtext_minsize=8,
+                showlegend=False,
+                hovermode='closest',
+                margin=dict(b=0,l=0,r=0,t=0),
+                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                yaxis=dict(range=[min(node['y'])-5,max(node['y'])+2], showgrid=False, zeroline=False, showticklabels=False))
+                )
+        for x, y, t in zip(anno['x'], anno['y'], anno['text']):
+            fig_tree.add_annotation(
+                        x=x,
+                        y=y,
+                        text=t,
+                        showarrow=False,
+                        font=dict(family="Courier New, monospace", size=16))
+
 
         acc_tr = accuracy_score(y_train, clf.predict(x_train))
         acc_te = accuracy_score(y_test, clf.predict(x_test))
-
-        fig = plt.figure(figsize=(9.6, 7.2))
-        tree.plot_tree(clf)
-
-        # If we haven't already shown or saved the plot, then we need to
-        # draw the figure first...
-        fig.canvas.draw()
-
-        # Now we can save it to a numpy array.
-        tree_img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-        tree_img = tree_img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-        # print(tree_img.shape)
         
-
         plot_step = 0.1
         x_min, x_max = x_train[:, 0].min() - 1, x_train[:, 0].max() + 1
         y_min, y_max = x_train[:, 1].min() - 1, x_train[:, 1].max() + 1
@@ -81,17 +111,17 @@ def get_app(server=None):
             ),
                 layout=go.Layout(
                 xaxis=dict(range=[x_min, x_max]),
-                xaxis_title=data.feature_names[0],
+                xaxis_title=fn[0],
                 yaxis=dict(range=[y_min, y_max]),
-                yaxis_title=data.feature_names[1],
+                yaxis_title=fn[1],
             )
             )
         else:
             fig = go.Figure(layout=go.Layout(
                 xaxis=dict(range=[x_min, x_max]),
-                xaxis_title=data.feature_names[0],
+                xaxis_title=fn[0],
                 yaxis=dict(range=[y_min, y_max]),
-                yaxis_title=data.feature_names[1],
+                yaxis_title=fn[1],
             ))
 
         colors = ['red', 'blue', 'green']
@@ -99,20 +129,20 @@ def get_app(server=None):
             idx = np.where(y_train == i)
             fig.add_trace(go.Scatter(x=x_train[idx, 0].squeeze(), y=x_train[idx, 1].squeeze(),
                                     mode='markers',
-                                    name=data.target_names[i],
+                                    name=cn[i],
                                     marker_color=color,
                                     opacity=0.8))
         for i, color in enumerate(colors):
             idx = np.where(y_test == i)
             fig.add_trace(go.Scatter(x=x_test[idx, 0].squeeze(), y=x_test[idx, 1].squeeze(),
                                     mode='markers',
-                                    name=data.target_names[i] + ' test',
+                                    name=cn[i] + ' test',
                                     marker_color=color,
                                     opacity=0.3))
-        return fig, tree_img, acc_tr, acc_te
+        return fig, fig_tree, acc_tr, acc_te
 
 
-    fig, tree_img, acc_tr, acc_te = get_fig()
+    fig, fig_tree, acc_tr, acc_te = get_fig()
 
 
     app.layout = html.Div([
@@ -126,43 +156,35 @@ def get_app(server=None):
             dcc.Slider(
                 id='depth-slider-id',
                 min=1,
-                max=16,
-                marks={i: '{}'.format(i) for i in [1, 4, 7, 10, 13, 16]},
+                max=6,
+                step=None,
+                marks={i: '{}'.format(i) for i in range(1,7)},
                 value=4,
             ),
             dcc.Markdown('### Max Leaf Nodes'),
             dcc.Slider(
                 id='leaf-slider-id',
-                min=1,
-                max=100,
-                marks={i: '{}'.format(i) for i in range(1,10,100)},
-                value=10,
+                min=3,
+                max=18,
+                step=None,
+                marks={i: '{}'.format(i) for i in range(3,19,3)},
+                value=18,
             ),
-            dcc.Markdown('### Min Impurity'),
+            dcc.Markdown('### Min Samples Split'),
             dcc.Slider(
                 id='impur-slider-id',
-                min=0,
-                max=1,
-                marks={i: '{}'.format(i) for i in np.arange(0,1,0.1)},
-                value=0,
+                min=2,
+                max=40,
+                step=None,
+                marks={i: '{}'.format(i) for i in [2,5,10,20,40]},
+                value=2,
             ),
         ],
             style={'width': '40%', 'display': 'inline-block', 'vertical-align': 'top'}
         ),
 
         html.Div(children=[
-            dcc.Graph(id='tree-id', 
-                figure=go.Figure(go.Image(z=tree_img),
-                    layout = go.Layout(
-                        margin=go.layout.Margin(
-                                l=0, #left margin
-                                r=0, #right margin
-                                b=0, #bottom margin
-                                t=0, #top margin
-                            ),
-                        title = 'Overview',
-                        xaxis = dict(showticklabels=False),
-                        yaxis = dict(showticklabels=False)))),
+            dcc.Graph(id='decision-tree-id', figure=fig_tree),
             dcc.Graph(id='graph-id', figure=fig),
             html.Div([
                 html.Div(id='accuracy-train-id', children=f'Train Accuracy = {acc_tr:.3f}'),
@@ -178,6 +200,7 @@ def get_app(server=None):
 
     @app.callback(
         [Output(component_id='graph-id', component_property='figure'),
+        Output(component_id='decision-tree-id', component_property='figure'),
         Output(component_id='accuracy-train-id', component_property='children'),
         Output(component_id='accuracy-test-id', component_property='children')],
         [Input(component_id='depth-slider-id', component_property='value'),
@@ -185,47 +208,11 @@ def get_app(server=None):
         Input(component_id='impur-slider-id', component_property='value')]
     )
     def update_under_div(depth, max_leaf, min_impur):
-        # print(depth, max_leaf, min_impur)
-        fig, tree_img, acc_tr, acc_te = get_fig(depth, max_leaf, min_impur)
-        return [fig, f'Train Accuracy = {acc_tr:.3f}', f'Test Accuracy = {acc_te:.3f}']
+        fig, fig_tree, acc_tr, acc_te = get_fig(depth, max_leaf, min_impur)
+        return [fig, fig_tree,  f'Train Accuracy = {acc_tr:.3f}', f'Test Accuracy = {acc_te:.3f}']
 
     return app
 
 if __name__ == '__main__':
     app = get_app()
     app.run_server(debug=True)
-
-
-
-# import plotly.graph_objects as go
-# # import plotly.tools as tls
-# from skimage import data as data2
-
-# from sklearn.datasets import load_iris
-# from sklearn import tree
-# import matplotlib.pyplot as plt
-# import numpy as np
-
-# clf = tree.DecisionTreeClassifier(random_state=0)
-# iris = load_iris()
-
-# clf = clf.fit(iris.data, iris.target)
-
-# fig = plt.figure(figsize=(14.4, 10.8))
-# tree.plot_tree(clf)  # doctest: +SKIP
-
-# # If we haven't already shown or saved the plot, then we need to
-# # draw the figure first...
-# fig.canvas.draw()
-
-# # Now we can save it to a numpy array.
-# data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-# data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-# print(data.shape)
-
-# # img = data2.astronaut()s
-# # img_rgb = [[[255, 0, 0], [0, 255, 0], [0, 0, 255]],
-# #            [[0, 255, 0], [0, 0, 255], [255, 0, 0]]]
-# fig = go.Figure(go.Image(z=data))
-# fig.show()
-
