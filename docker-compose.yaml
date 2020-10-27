@@ -1,0 +1,17 @@
+version: '3.7'
+
+services:
+  web:
+    build: ./
+    command: gunicorn --bind 0.0.0.0:5000 flask_app:app
+    expose:
+      - 5000
+    env_file:
+      - ./.env.dev
+
+  nginx:
+    build: ./nginx
+    ports:
+        - 1337:80
+    depends_on:
+        - web

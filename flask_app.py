@@ -13,8 +13,8 @@ app = flask.Flask(__name__)
 def index():
     return render_template('index.html')
 
-app_0 = dash.Dash(__name__, server=app, url_base_pathname='/app1/')
-app_0.layout = html.H1('Under Construction')
+# app_0 = dash.Dash(__name__, server=app, url_base_pathname='/app1/')
+# app_0.layout = html.H1('Under Construction')
 
 app_1 = hyperparameter_decisiontree.get_app(app)
 app_2 = imbalanceddata.get_app(app)
