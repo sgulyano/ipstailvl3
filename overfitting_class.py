@@ -155,7 +155,7 @@ def get_app(server=None):
             html.H1(
                 "โมเดลที่เฉพาะเจาะจงเกินไป VS โมเดลที่ง่ายเกินไป (Overfitting/Underfitting in Classification)"),
             html.Div(children='''
-                ในแบบฝึกหัดนี้ ให้นักเรียนลองเปลี่ยนค่าตัวแปร depth ของ Decision Tree แล้วดูว่าเมื่อใดก่อให้เกิดโมเดลที่เฉพาะเจาะจงเกินไป 
+                ในแบบฝึกหัดนี้ ให้ผู้เรียนลองเปลี่ยนค่าตัวแปร depth ของ Decision Tree แล้วดูว่าเมื่อใดก่อให้เกิดโมเดลที่เฉพาะเจาะจงเกินไป 
                 (overfitting) และ โมเดลที่ง่ายเกินไป (underfitting) โดยการวาดกราฟเส้นระหว่างความแม่นยำกับค่าตัวแปร depth 
                 ของ Decision Tree ของทั้ง training data และ test data
             '''),

@@ -178,7 +178,7 @@ def get_app(server=None):
         [
             html.H1("โมเดลที่เฉพาะเจาะจงเกินไป VS โมเดลที่ง่ายเกินไป (Overfitting/Underfitting in Regression)"),
             html.Div(children='''
-                ในแบบฝึกหัดนี้ ให้นักเรียนลองเปลี่ยนค่า hyperparamter degree ของ Linear Regression แล้วดูว่าเมื่อใดเกิด 
+                ในแบบฝึกหัดนี้ ให้ผู้เรียนลองเปลี่ยนค่า hyperparamter degree ของ Linear Regression แล้วดูว่าเมื่อใดเกิด 
                 overfitting/underfitting โดยการวาดกราฟเส้นระหว่างค่า MSE กับค่าตัวแปร Degree ของ Linear Regression 
                 ของทั้ง training data และ test data
             '''),
