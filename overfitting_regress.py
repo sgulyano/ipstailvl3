@@ -1,13 +1,12 @@
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc
+from dash import html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
-from sklearn.datasets import load_boston
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 
@@ -152,8 +151,8 @@ def get_app(server=None):
     degree_marks[1] = '1'
     degree_marks[16] = '16'
 
-    controls = dbc.Card([
-        dbc.FormGroup([
+    controls = dbc.Row([
+        dbc.Row([
             html.H5(["Degree  ", dbc.Badge("4", className="ml-1", color="primary", id='degree-label')]),
             dcc.Slider(
                 id='degree-slider-id',
@@ -169,9 +168,7 @@ def get_app(server=None):
             html.H6([" MSE บน training data =  ", dbc.Badge(f'{mse_tr:.3f}', className="ml-1", color="success", id='mse-train-id')]),
             html.H6([" MSE บน test data = ", dbc.Badge(f'{mse_te:.3f}', className="ml-1", color="danger", id='mse-test-id')]),
             ])
-    ],
-        body=True,
-    )
+    ])
 
     ## Main layout
     app.layout = dbc.Container(
