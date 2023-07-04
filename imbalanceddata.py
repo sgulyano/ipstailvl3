@@ -1,6 +1,6 @@
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc
+from dash import html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
@@ -102,8 +102,8 @@ def get_app(server=None):
     over_spl_marks[100] = '100%'
     over_spl_marks[1000] = '1000%'
 
-    controls = dbc.Card([
-        dbc.FormGroup([
+    controls = dbc.Row([
+        dbc.Row([
             html.H5(["Under-Sampling", dbc.Badge("100%", className="ml-1", color="primary", id='under-spl-label')]),
             dcc.Slider(
                 id='under-spl-slider-id',
@@ -114,7 +114,7 @@ def get_app(server=None):
                 value=100
             ),
         ]),
-        dbc.FormGroup([
+        dbc.Row([
             html.H5(["Over-Sampling", dbc.Badge("100%", className="ml-1", color="primary", id='over-spl-label')]),
             dcc.Slider(
                 id='over-spl-slider-id',
@@ -126,7 +126,7 @@ def get_app(server=None):
                 value=100,
             ),
         ]),
-        dbc.FormGroup([
+        dbc.Row([
             # dbc.Label("Parameter"),
             html.H5(["Parameter"]),
             dbc.Checklist(
@@ -139,9 +139,7 @@ def get_app(server=None):
                 switch=True,
             ),
         ]),
-    ],
-        body=True,
-    )
+    ])
 
     ## Main layout
     app.layout = dbc.Container(

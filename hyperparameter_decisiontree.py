@@ -1,6 +1,6 @@
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc
+from dash import html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
@@ -148,8 +148,8 @@ def get_app(server=None):
     leaf_marks[3] = '3'
     leaf_marks[18] = '18'
 
-    controls = dbc.Card([
-        dbc.FormGroup([
+    controls = dbc.Row([
+        dbc.Row([
             html.H5(["Max Depth  ", dbc.Badge(
                 "4", className="ml-1", color="primary", id='depth-label')]),
             dcc.Slider(
@@ -161,7 +161,7 @@ def get_app(server=None):
                 value=4
             ),
         ]),
-        dbc.FormGroup([
+        dbc.Row([
             html.H5(["Max Leaf Nodes  ", dbc.Badge(
                 "18", className="ml-1", color="primary", id='leaf-label')]),
             dcc.Slider(
@@ -173,7 +173,7 @@ def get_app(server=None):
                 value=18
             ),
         ]),
-        dbc.FormGroup([
+        dbc.Row([
             html.H5(["Min Samples Split  ", dbc.Badge(
                 "2", className="ml-1", color="primary", id='spl-label')]),
             dcc.Slider(
@@ -193,9 +193,7 @@ def get_app(server=None):
             html.H6([" ความแม่นยำ บน test data = ", dbc.Badge(
                 f'{acc_te:.3f}', className="ml-1", color="danger", id='accuracy-test-id')]),
         ])
-    ],
-        body=True,
-    )
+    ])
 
     ## Main layout
     app.layout = dbc.Container(

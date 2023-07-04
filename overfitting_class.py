@@ -1,6 +1,6 @@
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc
+from dash import html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
@@ -125,8 +125,8 @@ def get_app(server=None):
     depth_marks[1] = '1'
     depth_marks[10] = '10'
 
-    controls = dbc.Card([
-        dbc.FormGroup([
+    controls = dbc.Row([
+        dbc.Row([
             html.H5(["Max Depth  ", dbc.Badge(
                 "4", className="ml-1", color="primary", id='depth-label')]),
             dcc.Slider(
@@ -145,9 +145,7 @@ def get_app(server=None):
             html.H6([" ความแม่นยำ บน test data = ", dbc.Badge(
                 f'{acc_te:.3f}', className="ml-1", color="danger", id='accuracy-test-id')]),
         ])
-    ],
-        body=True,
-    )
+    ])
 
     ## Main layout
     app.layout = dbc.Container(

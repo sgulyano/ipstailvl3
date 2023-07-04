@@ -1,7 +1,7 @@
 import flask
 from flask import render_template
 import dash
-import dash_html_components as html
+from dash import html
 import imbalanceddata
 import samplingbias
 import overfitting_class
