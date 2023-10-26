@@ -1,6 +1,6 @@
 import dash
 from dash import dcc
-from dash import html
+from dash import html, callback
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
@@ -14,22 +14,11 @@ import io
 
 import myplotly_tree
 
-
 np.random.seed(42)
 
-def get_app(server=None):
-    if server:
-        app = dash.Dash(
-            __name__,
-            server=server,
-            url_base_pathname='/hyperparameters/',
-            external_stylesheets=[dbc.themes.BOOTSTRAP]
-        )
-    else:
-        app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-    app.title = "ไฮเปอร์พารามิเตอร์ของต้นไม้ตัดสินใจ"
+dash.register_page(__name__, title="ไฮเปอร์พารามิเตอร์ของต้นไม้ตัดสินใจ")
 
-    ##
+def get_layout():
     data = load_iris()
 
     X = data['data'][:, :2]
@@ -196,7 +185,7 @@ def get_app(server=None):
     ])
 
     ## Main layout
-    app.layout = dbc.Container(
+    layout = dbc.Container(
         [
             html.H1("ไฮเปอร์พารามิเตอร์ของต้นไม้ตัดสินใจ (Hyperparameter)"),
             html.Div(children='''
@@ -216,64 +205,10 @@ def get_app(server=None):
             ),
         ],
         fluid=True,
-    )
+    className="p-5")
 
 
-
-    # app.layout = html.Div([
-    #     html.H1(children='ไฮเปอร์พารามิเตอร์ของต้นไม้ตัดสินใจ'),
-
-    #     html.Div(children='''
-    #         ในแบบฝึกหัดนี้ ให้นักเรียนลองเปลี่ยนค่าไฮเปอร์พารามิเตอร์ (hyperparamter) ของต้นไม้ตัดสินใจ (Decision Tree) เช่น ความลึก ฯลฯ แล้วดูว่าเกิดอะไรขึ้นกับโมเดลที่ได้
-    #     '''),
-    #     html.Div(children=[
-    #         dcc.Markdown('### Max Depth'),
-    #         dcc.Slider(
-    #             id='depth-slider-id',
-    #             min=1,
-    #             max=6,
-    #             step=None,
-    #             marks={i: '{}'.format(i) for i in range(1,7)},
-    #             value=4,
-    #         ),
-    #         dcc.Markdown('### Max Leaf Nodes'),
-    #         dcc.Slider(
-    #             id='leaf-slider-id',
-    #             min=3,
-    #             max=18,
-    #             step=None,
-    #             marks={i: '{}'.format(i) for i in range(3,19,3)},
-    #             value=18,
-    #         ),
-    #         dcc.Markdown('### Min Samples Split'),
-    #         dcc.Slider(
-    #             id='impur-slider-id',
-    #             min=2,
-    #             max=40,
-    #             step=None,
-    #             marks={i: '{}'.format(i) for i in [2,5,10,20,40]},
-    #             value=2,
-    #         ),
-    #     ],
-    #         style={'width': '40%', 'display': 'inline-block', 'vertical-align': 'top'}
-    #     ),
-
-    #     html.Div(children=[
-    #         dcc.Graph(id='decision-tree-id', figure=fig_tree, animate=True),
-    #         dcc.Graph(id='graph-id', figure=fig),
-    #         html.Div([
-    #             html.Div(id='accuracy-train-id', children=f'Train Accuracy = {acc_tr:.3f}'),
-    #             html.Div(id='accuracy-test-id', children=f'Test Accuracy = {acc_te:.3f}')
-    #         ],
-    #             style={'textAlign': 'center'}
-    #         )
-    #     ],
-    #         style={'width': '50%', 'display': 'inline-block'}
-    #     )
-    # ])
-
-
-    @app.callback(
+    @callback(
         [Output(component_id='graph-id', component_property='figure'),
         Output(component_id='decision-tree-id', component_property='figure'),
         Output(component_id='accuracy-train-id', component_property='children'),
@@ -289,8 +224,6 @@ def get_app(server=None):
         fig, fig_tree, acc_tr, acc_te = get_fig(depth, max_leaf, min_spl)
         return [fig, fig_tree,  f'{acc_tr:.3f}', f'{acc_te:.3f}', f'{depth}', f'{max_leaf}', f'{min_spl}']
 
-    return app
+    return layout
 
-if __name__ == '__main__':
-    app = get_app()
-    app.run_server(debug=True)
+layout = get_layout()

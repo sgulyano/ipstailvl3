@@ -2,24 +2,15 @@ import numpy as np
 import plotly.graph_objs as go
 import dash
 from dash import dcc
-from dash import html
+from dash import html, callback
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 
-def get_app(server=None):
-    if server:
-        app = dash.Dash(
-            __name__,
-            server=server,
-            url_base_pathname='/samplingbias/',
-            external_stylesheets=[dbc.themes.BOOTSTRAP]
-        )
-    else:
-        app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-    app.title = "อคติในการเลือกตัวอย่าง"
+dash.register_page(__name__, title="อคติในการเลือกตัวอย่าง")
 
+def get_layout():
     x = np.random.rand(100)*10 - 5
     y = 5/(1 + np.exp(-x)) + np.random.randn(100)
     # x = np.random.rand(100)
@@ -46,7 +37,7 @@ def get_app(server=None):
     f_input.layout.dragmode = 'lasso'
 
 
-    app.layout = dbc.Container(
+    layout = dbc.Container(
         [
             html.H1("อคติในการเลือกตัวอย่าง (Sampling Bias)"),
             html.Div(children='''
@@ -69,9 +60,9 @@ def get_app(server=None):
             )
         ],
         fluid=True,
-    )
+    className="p-5")
 
-    @app.callback([Output(component_id='output-graph', component_property='figure'),
+    @callback([Output(component_id='output-graph', component_property='figure'),
                 Output(component_id='accuracy-id', component_property='children')], 
                 [Input('input-graph', 'selectedData')])
     def display_selected_data(selectedData):
@@ -105,12 +96,8 @@ def get_app(server=None):
         else:
             f_output = go.Figure(layout=output_layout)
             mse = np.inf
-        # print(json.dumps(selectedData, indent=2))
         return [f_output, f'{mse:.3f}']
 
-    return app
+    return layout
 
-if __name__ == '__main__':
-    app = get_app()
-    app.run_server(debug=True)
-
+layout = get_layout()

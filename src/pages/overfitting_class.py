@@ -1,6 +1,6 @@
 import dash
 from dash import dcc
-from dash import html
+from dash import html, callback
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
@@ -13,20 +13,9 @@ from sklearn.metrics import accuracy_score
 
 np.random.seed(42)
 
+dash.register_page(__name__, title="โมเดลสำหรับจำแนกที่เฉพาะเจาะจง-ง่ายเกินไป")
 
-def get_app(server=None):
-    if server:
-        app = dash.Dash(
-            __name__,
-            server=server,
-            url_base_pathname='/overfitting_class/',
-            external_stylesheets=[dbc.themes.BOOTSTRAP]
-        )
-    else:
-        app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-    app.title = "โมเดลสำหรับจำแนกที่เฉพาะเจาะจง/ง่ายเกินไป"
-
-    ##
+def get_layout():
     data = load_breast_cancer()
 
     X = data['data'][:, :2]
@@ -44,17 +33,6 @@ def get_app(server=None):
     xx, yy = np.meshgrid(np.arange(x_min, x_max, plot_step),
                          np.arange(y_min, y_max, plot_step))
 
-    # train_acc = []
-    # test_acc = []
-    # for i in range(1,16):
-    #     clf = tree.DecisionTreeClassifier(max_depth=i)
-    #     clf = clf.fit(x_train, y_train)
-
-    #     acc_tr = accuracy_score(y_train, clf.predict(x_train))
-    #     acc_te = accuracy_score(y_test, clf.predict(x_test))
-
-    #     train_acc.append(acc_tr)
-    #     test_acc.append(acc_te)
 
     def get_fig(depth=4):
         clf = tree.DecisionTreeClassifier(max_depth=depth)
@@ -74,10 +52,7 @@ def get_app(server=None):
             opacity=0.2,
             colorbar=dict(),
             showscale=False
-            # colorbar=dict(nticks=10, ticks='outside',
-            #               ticklen=5, tickwidth=1,
-            #               showticklabels=True,
-            #               tickangle=0, tickfont_size=12)
+
         ), layout=go.Layout(
             uirevision=True,
             margin=dict(b=0, l=0, r=0, t=40),
@@ -96,13 +71,6 @@ def get_app(server=None):
                                      name=cn[i] + ' train',
                                      marker_color='rgb('+color+')',))
 
-        # for i, color in enumerate(colors):
-        #     idx = np.where(y_train == i)
-        #     fig.add_trace(go.Scatter(x=x_train[idx, 0].squeeze(), y=x_train[idx, 1].squeeze(),
-        #                             mode='markers',
-        #                             name=data.target_names[i],
-        #                             marker_color=color,
-        #                             opacity=0.8))
         for i, color in enumerate(colors):
             idx = np.where(y_test == i)
             fig.add_trace(go.Scatter(x=x_test[idx, 0].squeeze(), y=x_test[idx, 1].squeeze(),
@@ -112,11 +80,6 @@ def get_app(server=None):
                                      marker_line_color='rgba('+color+', 1.0)',
                                      marker_line_width=1))
 
-            # fig.add_trace(go.Scatter(x=x_test[idx, 0].squeeze(), y=x_test[idx, 1].squeeze(),
-            #                         mode='markers',
-            #                         name=data.target_names[i] + ' test',
-            #                         marker_color=color,
-            #                         opacity=0.3))
         return fig, acc_tr, acc_te
 
     fig, acc_tr, acc_te = get_fig()
@@ -128,9 +91,9 @@ def get_app(server=None):
     controls = dbc.Row([
         dbc.Row([
             html.H5(["Max Depth  ", dbc.Badge(
-                "4", className="ml-1", color="primary", id='depth-label')]),
+                "4", className="ml-1", color="primary", id='overfit-class-depth-label')]),
             dcc.Slider(
-                id='depth-slider-id',
+                id='overfit-class-depth-slider-id',
                 min=1,
                 max=10,
                 step=None,
@@ -141,14 +104,14 @@ def get_app(server=None):
         html.Div([
             html.H5([" ความแม่นยำ "]),
             html.H6([" ความแม่นยำ บน training data =  ", dbc.Badge(
-                f'{acc_tr:.3f}', className="ml-1", color="success", id='accuracy-train-id')]),
+                f'{acc_tr:.3f}', className="ml-1", color="success", id='overfit-class-accuracy-train-id')]),
             html.H6([" ความแม่นยำ บน test data = ", dbc.Badge(
-                f'{acc_te:.3f}', className="ml-1", color="danger", id='accuracy-test-id')]),
+                f'{acc_te:.3f}', className="ml-1", color="danger", id='overfit-class-accuracy-test-id')]),
         ])
     ])
 
     ## Main layout
-    app.layout = dbc.Container(
+    layout = dbc.Container(
         [
             html.H1(
                 "โมเดลที่เฉพาะเจาะจงเกินไป VS โมเดลที่ง่ายเกินไป (Overfitting/Underfitting in Classification)"),
@@ -161,79 +124,26 @@ def get_app(server=None):
             dbc.Row(
                 [
                     dbc.Col(controls, md=4),
-                    dbc.Col(dcc.Graph(id="graph-id", figure=fig), md=8),
+                    dbc.Col(dcc.Graph(id="overfit-class-graph-id", figure=fig), md=8),
                 ],
                 align="center",
             ),
         ],
         fluid=True,
-    )
+    className="p-5")
 
-    # app.layout = html.Div([
-    #     html.H1(children='Overfitting/Underfitting in Classification'),
-
-    #     html.Div(children='''
-    #         ในแบบฝึกหัดนี้ ให้นักเรียนลองเปลี่ยนค่า hyperparamter depth ของ Decision Tree แล้วดูว่าเมื่อใดเกิด overfitting/underfitting
-    #     '''),
-    #     html.Div(children=[
-    #         # dcc.Markdown('### ชุดข้อมูล'),
-    #         # dcc.Dropdown(
-    #         #     options=[
-    #         #         {'label': 'มะเร็งเต้านม', 'value': 'breast_cancer'},
-    #         #     ],
-    #         #     value='breast_cancer'
-    #         # ),
-
-    #         dcc.Markdown('### Max Depth'),
-    #         dcc.Slider(
-    #             id='depth-slider-id',
-    #             min=1,
-    #             max=16,
-    #             marks={i: '{}'.format(i) for i in [1, 4, 7, 10, 13, 16]},
-    #             value=4,
-    #         ),
-
-    #         dcc.Graph(figure=go.Figure([go.Scatter(x=list(range(1,16)), y=train_acc, mode='markers', name="Train"),
-    #                             go.Scatter(x=list(range(1,16)), y=test_acc, mode='lines+markers', name="Test")],
-    #                             layout=go.Layout(
-    #             title='ข้อมูลที่ใช้ Train โมเดล',
-    #             xaxis=dict(range=[0, 17]),
-    #             xaxis_title='Depth',
-    #             yaxis=dict(range=[0, 1.1]),
-    #             yaxis_title='Accuracy',
-    #         )))
-    #     ],
-    #         style={'width': '40%', 'display': 'inline-block', 'vertical-align': 'top'}
-    #     ),
-
-    #     html.Div(children=[
-    #         dcc.Graph(id='graph-id', figure=fig),
-    #         html.Div([
-    #             html.Div(id='accuracy-train-id', children=f'Train Accuracy = {acc_tr:.3f}'),
-    #             html.Div(id='accuracy-test-id', children=f'Test Accuracy = {acc_te:.3f}')
-    #         ],
-    #             style={'textAlign': 'center'}
-    #         )
-    #     ],
-    #         style={'width': '50%', 'display': 'inline-block'}
-    #     )
-    # ])
-
-    @app.callback(
-        [Output(component_id='depth-label', component_property='children'),
-         Output(component_id='graph-id', component_property='figure'),
-         Output(component_id='accuracy-train-id',
+    @callback(
+        [Output(component_id='overfit-class-depth-label', component_property='children'),
+         Output(component_id='overfit-class-graph-id', component_property='figure'),
+         Output(component_id='overfit-class-accuracy-train-id',
                 component_property='children'),
-         Output(component_id='accuracy-test-id', component_property='children')],
-        [Input(component_id='depth-slider-id', component_property='value')]
+         Output(component_id='overfit-class-accuracy-test-id', component_property='children')],
+        [Input(component_id='overfit-class-depth-slider-id', component_property='value')]
     )
     def update_under_div(depth):
         fig, acc_tr, acc_te = get_fig(depth)
         return [f'{depth}', fig, f'{acc_tr:.3f}', f'{acc_te:.3f}']
+    
+    return layout
 
-    return app
-
-
-if __name__ == '__main__':
-    app = get_app()
-    app.run_server(debug=True)
+layout = get_layout()

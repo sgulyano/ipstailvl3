@@ -1,6 +1,6 @@
 import dash
 from dash import dcc
-from dash import html
+from dash import html, callback
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
@@ -11,19 +11,9 @@ from sklearn.datasets import load_breast_cancer
 
 np.random.seed(42)
 
+dash.register_page(__name__, title="จำนวนข้อมูลที่ไม่สมดุลกัน")
 
-def get_app(server=None):
-    if server:
-        app = dash.Dash(
-            __name__,
-            server=server,
-            url_base_pathname='/imbalanceddata/',
-            external_stylesheets=[dbc.themes.BOOTSTRAP]
-        )
-    else:
-        app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-    app.title = "จำนวนข้อมูลที่ไม่สมดุลกัน"
-
+def get_layout():
     ## load data
     data = load_breast_cancer()
     X = data['data'][:, :2]
@@ -104,9 +94,9 @@ def get_app(server=None):
 
     controls = dbc.Row([
         dbc.Row([
-            html.H5(["Under-Sampling", dbc.Badge("100%", className="ml-1", color="primary", id='under-spl-label')]),
+            html.H5(["Under-Sampling", dbc.Badge("100%", className="ml-1", color="primary", id='imbalance-under-spl-label')]),
             dcc.Slider(
-                id='under-spl-slider-id',
+                id='imbalance-under-spl-slider-id',
                 min=10,
                 max=100,
                 step=None,
@@ -115,9 +105,9 @@ def get_app(server=None):
             ),
         ]),
         dbc.Row([
-            html.H5(["Over-Sampling", dbc.Badge("100%", className="ml-1", color="primary", id='over-spl-label')]),
+            html.H5(["Over-Sampling", dbc.Badge("100%", className="ml-1", color="primary", id='imbalance-over-spl-label')]),
             dcc.Slider(
-                id='over-spl-slider-id',
+                id='imbalance-over-spl-slider-id',
                 dots=True,
                 min=100,
                 max=1000,
@@ -134,7 +124,7 @@ def get_app(server=None):
                     {"label": "แสดงขอบเขตการจำแนก", "value": 1},
                 ],
                 value=[],
-                id="show-dec-bound-id",
+                id="imbalance-show-dec-bound-id",
                 inline=True,
                 switch=True,
             ),
@@ -142,7 +132,7 @@ def get_app(server=None):
     ])
 
     ## Main layout
-    app.layout = dbc.Container(
+    layout = dbc.Container(
         [
             html.H1("จำนวนข้อมูลที่ไม่สมดุลกัน (Imbalanced Data)"),
             html.Div(children='''
@@ -153,13 +143,13 @@ def get_app(server=None):
             dbc.Row(
                 [
                     dbc.Col(controls, md=4),
-                    dbc.Col(dcc.Graph(id="graph-id", figure=fig), md=8),
+                    dbc.Col(dcc.Graph(id="imbalance-graph-id", figure=fig), md=8),
                 ],
                 align="center",
             ),
         ],
         fluid=True,
-    )
+    className="p-5")
 
 
     def under_sampling(x_train, y_train, ratio):
@@ -181,24 +171,18 @@ def get_app(server=None):
         y_new = np.concatenate((y_train[idx], y_train[y_train == 1]))
         return x_new, y_new
 
+    @callback([Output('imbalance-under-spl-label', 'children'),
+                  Output('imbalance-over-spl-label', 'children'),
+                  Output('imbalance-graph-id', 'figure')],
+                 [Input("imbalance-under-spl-slider-id", "value"),
+                  Input('imbalance-over-spl-slider-id', 'value'),
+                  Input('imbalance-show-dec-bound-id', 'value')])
     def update_under_div(under_ratio, over_ratio, show_decision_boundary):
         x_under, y_under = under_sampling(x_train, y_train, under_ratio)
         x_new, y_new = over_sampling(x_under, y_under, over_ratio)
         fig = get_fig(x_new, y_new, len(show_decision_boundary))
         return f'{under_ratio}%', f'{over_ratio}%', fig
 
-    app.callback([Output('under-spl-label', 'children'),
-                  Output('over-spl-label', 'children'),
-                  Output('graph-id', 'figure')],
-                 [Input("under-spl-slider-id", "value"),
-                  Input('over-spl-slider-id', 'value'),
-                  Input('show-dec-bound-id', 'value')])(
-        update_under_div
-    )
+    return layout
 
-    return app
-
-
-if __name__ == '__main__':
-    app = get_app()
-    app.run_server(debug=True)
+layout = get_layout()
